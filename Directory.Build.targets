@@ -14,6 +14,7 @@
     <!-- Cocoa -->
     <SentryCocoaRoot>$(RepoRoot)modules/sentry-cocoa/</SentryCocoaRoot>
     <SentryiOSArtifactsDestination>$(SentryArtifactsDestination)iOS/Sentry.xcframework~/</SentryiOSArtifactsDestination>
+    <SentryvisionOSArtifactsDestination>$(SentryArtifactsDestination)visionOS/Sentry.xcframework~/</SentryvisionOSArtifactsDestination>
     <SentrymacOSArtifactsDestination>$(SentryArtifactsDestination)macOS/Sentry/</SentrymacOSArtifactsDestination>
     <!-- Android -->
     <SentryNativeNdkCache>$(RepoRoot)modules/sentry-native-ndk/</SentryNativeNdkCache>
@@ -162,6 +163,7 @@ Expected to exist:
   <Target Name="CleanCocoaSDK" AfterTargets="Clean" Condition="'$(MSBuildProjectName)' == 'Sentry.Unity'">
     <RemoveDir Directories="$(SentryCocoaRoot)XCFrameworkBuildPath" ContinueOnError="true" />
     <RemoveDir Directories="$(SentryiOSArtifactsDestination)" ContinueOnError="true" />
+    <RemoveDir Directories="$(SentryvisionOSArtifactsDestination)" ContinueOnError="true" />
     <Delete Files="$(SentrymacOSArtifactsDestination)Sentry.dylib" ContinueOnError="true" />
     <Delete Files="$(SentrymacOSArtifactsDestination)Sentry.dylib.dSYM" ContinueOnError="true" />
   </Target>
@@ -190,19 +192,20 @@ Expected to exist:
   </Target>
 
   <!-- Build the Cocoa SDK: dotnet msbuild /t:BuildCocoaSDK src/Sentry.Unity -->
-  <!-- Builds the sentry-cocoa submodule from source and extracts iOS and macOS artifacts -->
+  <!-- Builds the sentry-cocoa submodule from source and extracts iOS, visionOS and macOS artifacts -->
   <Target Name="BuildCocoaSDK"
       Condition="!$([MSBuild]::IsOSPlatform('Windows')) AND '$(MSBuildProjectName)' == 'Sentry.Unity'
-        And (!Exists('$(SentryiOSArtifactsDestination)') Or !Exists('$(SentrymacOSArtifactsDestination)Sentry.dylib'))"
+        And (!Exists('$(SentryiOSArtifactsDestination)') Or !Exists('$(SentryvisionOSArtifactsDestination)') Or !Exists('$(SentrymacOSArtifactsDestination)Sentry.dylib'))"
       BeforeTargets="BeforeBuild">
 
     <Error Condition="!Exists('$(SentryCocoaRoot)Sentry.xcodeproj')" Text="sentry-cocoa submodule not checked out at $(SentryCocoaRoot). Run: git submodule update --init modules/sentry-cocoa" />
 
     <Message Importance="High" Text="Building Cocoa SDK from submodule." />
 
-    <Exec Command="pwsh &quot;$(RepoRoot)scripts/build-cocoa-sdk.ps1&quot; -CocoaRoot &quot;$(SentryCocoaRoot)&quot; -iOSDestination &quot;$(SentryiOSArtifactsDestination)&quot; -macOSDestination &quot;$(SentrymacOSArtifactsDestination)Sentry.dylib&quot;" />
+    <Exec Command="pwsh &quot;$(RepoRoot)scripts/build-cocoa-sdk.ps1&quot; -CocoaRoot &quot;$(SentryCocoaRoot)&quot; -iOSDestination &quot;$(SentryiOSArtifactsDestination)&quot; -visionOSDestination &quot;$(SentryvisionOSArtifactsDestination)&quot; -macOSDestination &quot;$(SentrymacOSArtifactsDestination)Sentry.dylib&quot;" />
 
     <Error Condition="(!Exists('$(SentryiOSArtifactsDestination)'))" Text="Failed to set up the iOS SDK." />
+    <Error Condition="(!Exists('$(SentryvisionOSArtifactsDestination)'))" Text="Failed to set up the visionOS SDK." />
     <Error Condition="(!Exists('$(SentrymacOSArtifactsDestination)Sentry.dylib') Or !Exists('$(SentrymacOSArtifactsDestination)Sentry.dylib.dSYM'))" Text="Failed to set up the macOS SDK." />
   </Target>
 

@@ -46,6 +46,7 @@ public class ScriptableSentryUnityOptionsTests
         StringAssert.Contains("AndroidNativeSupportEnabled", optionsAsString);
         StringAssert.Contains("WindowsNativeSupportEnabled", optionsAsString);
         StringAssert.Contains("MacosNativeSupportEnabled", optionsAsString);
+        StringAssert.Contains("VisionOsNativeSupportEnabled", optionsAsString);
         StringAssert.Contains("LinuxNativeSupportEnabled", optionsAsString);
         StringAssert.Contains("Il2CppLineNumberSupportEnabled", optionsAsString);
         StringAssert.Contains("OptionsConfiguration", optionsAsString);

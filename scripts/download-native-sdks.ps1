@@ -34,6 +34,7 @@ $SDKs = @(
         Destination = $ArtifactsDestination
         CheckFiles = @(
             "iOS/Sentry.xcframework~/Info.plist",
+            "visionOS/Sentry.xcframework~/Info.plist",
             "macOS/Sentry/Sentry.dylib"
         )
     }

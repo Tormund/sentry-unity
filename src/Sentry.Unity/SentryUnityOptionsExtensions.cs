@@ -55,6 +55,9 @@ public static class SentryUnityOptionsExtensions
         {
             RuntimePlatform.Android => options.AndroidNativeSupportEnabled,
             RuntimePlatform.IPhonePlayer => options.IosNativeSupportEnabled,
+#if UNITY_6000_0_OR_NEWER
+            RuntimePlatform.VisionOS => options.VisionOsNativeSupportEnabled,
+#endif
             RuntimePlatform.WindowsPlayer or RuntimePlatform.WindowsServer => options.WindowsNativeSupportEnabled,
             RuntimePlatform.OSXPlayer or RuntimePlatform.OSXServer => options.MacosNativeSupportEnabled,
             RuntimePlatform.LinuxPlayer or RuntimePlatform.LinuxServer => options.LinuxNativeSupportEnabled,

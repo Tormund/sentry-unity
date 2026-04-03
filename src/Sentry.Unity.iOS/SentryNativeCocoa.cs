@@ -31,7 +31,11 @@ public static class SentryNativeCocoa
             return;
         }
 
-        if (platform == RuntimePlatform.IPhonePlayer)
+        if (platform == RuntimePlatform.IPhonePlayer
+#if UNITY_6000_0_OR_NEWER
+            || platform == RuntimePlatform.VisionOS
+#endif
+        )
         {
             if (SentryCocoaBridgeProxy.IsEnabled())
             {
@@ -43,7 +47,8 @@ public static class SentryNativeCocoa
                 return;
             }
 
-            options.ScopeObserver = new NativeScopeObserver("iOS", options);
+            var platformName = platform == RuntimePlatform.IPhonePlayer ? "iOS" : "visionOS";
+            options.ScopeObserver = new NativeScopeObserver(platformName, options);
         }
         else
         {

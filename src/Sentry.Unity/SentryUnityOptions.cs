@@ -237,6 +237,11 @@ public sealed class SentryUnityOptions : SentryOptions
     public bool MacosNativeSupportEnabled { get; set; } = true;
 
     /// <summary>
+    /// Whether the SDK should add native support for visionOS
+    /// </summary>
+    public bool VisionOsNativeSupportEnabled { get; set; } = true;
+
+    /// <summary>
     /// Whether the SDK should add native support for Linux
     /// </summary>
     public bool LinuxNativeSupportEnabled { get; set; } = true;
@@ -457,6 +462,9 @@ public sealed class SentryUnityOptions : SentryOptions
 
             // Mobile: false
             RuntimePlatform.Android or RuntimePlatform.IPhonePlayer => false,
+#if UNITY_6000_0_OR_NEWER
+            RuntimePlatform.VisionOS => false,
+#endif
 
             // Consoles: false
             RuntimePlatform.GameCoreXboxSeries or RuntimePlatform.GameCoreXboxOne
@@ -531,7 +539,11 @@ public sealed class SentryUnityOptions : SentryOptions
             or RuntimePlatform.GameCoreXboxSeries
             or RuntimePlatform.GameCoreXboxOne
             or RuntimePlatform.PS5
-            or RuntimePlatform.Switch;
+            or RuntimePlatform.Switch
+#if UNITY_6000_0_OR_NEWER
+            or RuntimePlatform.VisionOS
+#endif
+            ;
     }
 
     public override string ToString()

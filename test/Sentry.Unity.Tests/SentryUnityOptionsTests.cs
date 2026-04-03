@@ -95,6 +95,9 @@ public sealed class SentryUnityOptionsTests
     [TestCase(RuntimePlatform.LinuxServer, true)]
     [TestCase(RuntimePlatform.Android, false)]
     [TestCase(RuntimePlatform.IPhonePlayer, false)]
+#if UNITY_6000_0_OR_NEWER
+    [TestCase(RuntimePlatform.VisionOS, false)]
+#endif
     [TestCase(RuntimePlatform.GameCoreXboxSeries, false)]
     [TestCase(RuntimePlatform.GameCoreXboxOne, false)]
     [TestCase(RuntimePlatform.PS5, false)]

@@ -109,9 +109,14 @@ internal static class AdvancedTab
             GUILayout.Label("Mobile", EditorStyles.boldLabel);
 
             options.IosNativeSupportEnabled = EditorGUILayout.Toggle(
-                new GUIContent("iOS", "Whether to enable Native iOS support to capture" +
+                new GUIContent("iOS", "Whether to enable Native iOS support to capture " +
                                                      "errors written in languages such as Objective-C, Swift, C and C++."),
                 options.IosNativeSupportEnabled);
+
+            options.VisionOsNativeSupportEnabled = EditorGUILayout.Toggle(
+                new GUIContent("visionOS", "Whether to enable Native visionOS support to capture " +
+                                                     "errors written in languages such as Objective-C, Swift, C and C++."),
+                options.VisionOsNativeSupportEnabled);
 
             options.AndroidNativeSupportEnabled = EditorGUILayout.Toggle(
                 new GUIContent("Android", "Whether to enable Native Android support to " +

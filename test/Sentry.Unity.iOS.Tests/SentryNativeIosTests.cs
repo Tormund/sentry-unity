@@ -47,4 +47,24 @@ public class SentryNativeCocoaTests
         Assert.Null(options.CrashedLastRun);
         Assert.False(options.EnableScopeSync);
     }
+
+#if UNITY_6000_0_OR_NEWER
+    [Test]
+    public void Configure_DefaultConfiguration_visionOS()
+    {
+        var options = new SentryUnityOptions();
+        Assert.Throws<EntryPointNotFoundException>(() =>
+            SentryNativeCocoa.Configure(options, RuntimePlatform.VisionOS));
+    }
+
+    [Test]
+    public void Configure_NativeSupportDisabled_visionOS()
+    {
+        var options = new SentryUnityOptions { VisionOsNativeSupportEnabled = false };
+        SentryNativeCocoa.Configure(options, RuntimePlatform.VisionOS);
+        Assert.Null(options.ScopeObserver);
+        Assert.Null(options.CrashedLastRun);
+        Assert.False(options.EnableScopeSync);
+    }
+#endif
 }

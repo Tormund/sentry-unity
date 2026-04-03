@@ -8,6 +8,7 @@
         "GameCoreScarlett",
         "GameCoreXboxOne",
         "iOS",
+        "VisionOS",
         "LinuxStandalone64",
         "Lumin",
         "macOSStandalone",

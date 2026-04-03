@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
 using Sentry.Unity.Tests.SharedClasses;
+using UnityEditor;
 using UnityEditor.Build;
 
 namespace Sentry.Unity.Editor.iOS.Tests;
@@ -47,7 +48,7 @@ public class BuildPostProcessorTests
             log.message.Contains("Attempting to add Sentry to the Xcode project."))); // Sanity check
         Assert.IsTrue(testLogger.Logs.Any(log =>
             log.logLevel == SentryLevel.Warning &&
-            log.message.Contains("iOS native support disabled because Sentry has not been configured.")));
+            log.message.Contains("Native support disabled because Sentry has not been configured.")));
 
         var noOpBridgePath = Path.Combine(_outputProjectPath, "Libraries", SentryPackageInfo.GetName(),
             SentryXcodeProject.BridgeName);
@@ -66,7 +67,7 @@ public class BuildPostProcessorTests
 
         Assert.IsTrue(testLogger.Logs.Any(log =>
             log.logLevel == SentryLevel.Info &&
-            log.message.Contains("iOS native support has been disabled through the options."))); // Sanity check
+            log.message.Contains("Native support has been disabled through the options."))); // Sanity check
 
         var mainFile = File.ReadAllText(Path.Combine(_outputProjectPath, SentryXcodeProject.MainPath));
         var noOpBridgePath = Path.Combine(_outputProjectPath, "Libraries", SentryPackageInfo.GetName(), SentryXcodeProject.BridgeName);
@@ -130,11 +131,11 @@ public class BuildPostProcessorTests
         var options = new SentryUnityOptions { Enabled = false };
         var testLogger = new TestLogger();
 
-        var enabled = BuildPostProcess.IsNativeSupportEnabled(options, testLogger);
+        var enabled = BuildPostProcess.IsNativeSupportEnabled(options, testLogger, BuildTarget.iOS);
 
         Assert.IsTrue(testLogger.Logs.Any(log =>
             log.logLevel == SentryLevel.Warning &&
-            log.message.Contains("Sentry SDK has been disabled. There will be no iOS native support.")));
+            log.message.Contains("Sentry SDK has been disabled. There will be no native support.")));
         Assert.IsFalse(enabled);
     }
 
@@ -148,7 +149,7 @@ public class BuildPostProcessorTests
         };
         var testLogger = new TestLogger();
 
-        var enabled = BuildPostProcess.IsNativeSupportEnabled(options, testLogger);
+        var enabled = BuildPostProcess.IsNativeSupportEnabled(options, testLogger, BuildTarget.iOS);
 
         Assert.IsTrue(testLogger.Logs.Any(log =>
             log.logLevel == SentryLevel.Info &&

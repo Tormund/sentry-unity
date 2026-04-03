@@ -14,7 +14,11 @@ public static class BuildPostProcess
     [PostProcessBuild(1)]
     public static void OnPostProcessBuild(BuildTarget target, string pathToProject)
     {
-        if (target != BuildTarget.iOS)
+        if (target != BuildTarget.iOS
+#if UNITY_6000_0_OR_NEWER
+            && target != BuildTarget.VisionOS
+#endif
+        )
         {
             return;
         }
@@ -23,16 +27,28 @@ public static class BuildPostProcess
         var options = SentryScriptableObject.LoadOptions(isBuilding: true);
         var logger = options?.DiagnosticLogger ?? new UnityLogger(new SentryUnityOptions());
 
-        AddSentryToXcodeProject(options, cliOptions, logger, pathToProject);
+        AddSentryToXcodeProject(options, cliOptions, logger, pathToProject, target);
     }
 
-    internal static bool IsNativeSupportEnabled(SentryUnityOptions options, IDiagnosticLogger logger)
+    internal static bool IsNativeSupportEnabled(SentryUnityOptions options, IDiagnosticLogger logger, BuildTarget target)
     {
         if (!options.IsValid())
         {
-            logger.LogWarning("Sentry SDK has been disabled. There will be no iOS native support.");
+            logger.LogWarning("Sentry SDK has been disabled. There will be no native support.");
             return false;
         }
+
+#if UNITY_6000_0_OR_NEWER
+        if (target == BuildTarget.VisionOS)
+        {
+            if (!options.VisionOsNativeSupportEnabled)
+            {
+                logger.LogInfo("The visionOS native support has been disabled through the options.");
+                return false;
+            }
+            return true;
+        }
+#endif
 
         if (!options.IosNativeSupportEnabled)
         {
@@ -46,11 +62,12 @@ public static class BuildPostProcess
     internal static void AddSentryToXcodeProject(SentryUnityOptions? options,
         SentryCliOptions? cliOptions,
         IDiagnosticLogger logger,
-        string pathToProject)
+        string pathToProject,
+        BuildTarget target = BuildTarget.iOS)
     {
         if (options is null)
         {
-            logger.LogWarning("iOS native support disabled because Sentry has not been configured. " +
+            logger.LogWarning("Native support disabled because Sentry has not been configured. " +
                               "You can do that through the editor: {0}", SentryWindow.EditorMenuPath);
 
             // Even with native support disabled the P/Invoke declarations from `SentryCocoaBridgeProxy` must exist.
@@ -58,13 +75,13 @@ public static class BuildPostProcess
             return;
         }
 
-        if (IsNativeSupportEnabled(options, logger))
+        if (IsNativeSupportEnabled(options, logger, target))
         {
-            SetupSentry(options, logger, pathToProject);
+            SetupSentry(options, logger, pathToProject, target);
         }
         else
         {
-            logger.LogInfo("iOS native support has been disabled through the options. " +
+            logger.LogInfo("Native support has been disabled through the options. " +
                            "Native support will not be available at runtime.");
 
             // Even with native support disabled the P/Invoke declarations from `SentryCocoaBridgeProxy` must exist.
@@ -86,7 +103,7 @@ public static class BuildPostProcess
                 if (NativeMain.ContainsSentry(main, logger))
                 {
                     throw new BuildFailedException(
-                        "The iOS native support has been disabled but the exported project has been modified " +
+                        "The native support has been disabled but the exported project has been modified " +
                         "during a previous build. Select 'Replace' when exporting the project to create a clean project.");
                 }
             }
@@ -111,20 +128,35 @@ public static class BuildPostProcess
         }
     }
 
-    internal static void SetupSentry(SentryUnityOptions options, IDiagnosticLogger logger, string pathToProject)
+    internal static string GetPluginDirectory(BuildTarget target)
+    {
+#if UNITY_6000_0_OR_NEWER
+        if (target == BuildTarget.VisionOS)
+        {
+            return "visionOS";
+        }
+#endif
+        return "iOS";
+    }
+
+    internal static void SetupSentry(SentryUnityOptions options, IDiagnosticLogger logger, string pathToProject,
+        BuildTarget target = BuildTarget.iOS)
     {
         logger.LogInfo("Attempting to add Sentry to the Xcode project.");
 
         try
         {
+            var pluginDir = GetPluginDirectory(target);
+
             // The Sentry.xcframework ends in '~' to hide it from Unity. This prevents Unity from exporting it with the Xcode build.
             // Ideally, we would let Unity copy this over but:
             // - Detection of `.xcframework` as datatype and non-folder happened in Unity 2021
             // - Without a `.meta` file we cannot opt-in embedding the framework
             // - Even if Unity copies it, the framework still requires to be 'linked with binary' for it to work
-            var frameworkPath = Path.GetFullPath(Path.Combine("Packages", SentryPackageInfo.GetName(), "Plugins", "iOS", SentryXcodeProject.FrameworkName + "~"));
+            var frameworkPath = Path.GetFullPath(Path.Combine("Packages", SentryPackageInfo.GetName(), "Plugins", pluginDir, SentryXcodeProject.FrameworkName + "~"));
             CopyFramework(frameworkPath, Path.Combine(pathToProject, "Frameworks", SentryXcodeProject.FrameworkName), logger);
 
+            // The native bridge is shared between iOS and visionOS
             var nativeBridgePath = Path.GetFullPath(Path.Combine("Packages", SentryPackageInfo.GetName(), "Plugins", "iOS", SentryXcodeProject.BridgeName));
             CopyFile(nativeBridgePath, Path.Combine(pathToProject, "Libraries", SentryPackageInfo.GetName(), SentryXcodeProject.BridgeName), logger);
 

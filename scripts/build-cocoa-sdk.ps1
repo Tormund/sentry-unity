@@ -8,6 +8,9 @@ param(
     [string]$iOSDestination,
 
     [Parameter(Mandatory = $true)]
+    [string]$visionOSDestination,
+
+    [Parameter(Mandatory = $true)]
     [string]$macOSDestination
 )
 
@@ -23,6 +26,7 @@ if (-not (Test-Path (Join-Path $CocoaRoot "Sentry.xcodeproj"))) {
 # All build artifacts go under XCFrameworkBuildPath/ which is already in sentry-cocoa's .gitignore.
 $buildPath = Join-Path $CocoaRoot "XCFrameworkBuildPath"
 $iOSXcframeworkPath = Join-Path $buildPath "Sentry-Dynamic-iOS.xcframework"
+$visionOSXcframeworkPath = Join-Path $buildPath "Sentry-Dynamic-visionOS.xcframework"
 $macOSXcframeworkPath = Join-Path $buildPath "Sentry-Dynamic-macOS.xcframework"
 
 Write-Host "Building Cocoa SDK from source..." -ForegroundColor Yellow
@@ -64,6 +68,41 @@ try {
         exit 1
     }
     Write-Host "iOS SDK set up at: $iOSDestination" -ForegroundColor Green
+
+    ################ Build and set up visionOS support ################
+
+    if (-not (Test-Path $visionOSXcframeworkPath)) {
+        Write-Host "Building visionOS xcframework..." -ForegroundColor Yellow
+        # Build xros and xrsimulator slices individually then assemble the xcframework.
+        # The upstream build-xcframework-variant.sh doesn't have a "visionOSOnly" option,
+        # so we call the lower-level scripts directly.
+        foreach ($sdk in @("xros", "xrsimulator")) {
+            & ./scripts/build-xcframework-slice.sh $sdk "Sentry" "-Dynamic" "mh_dylib" ""
+        }
+        $archivePattern = "$PWD/XCFrameworkBuildPath/archive/Sentry-Dynamic/SDK_NAME.xcarchive"
+        & ./scripts/assemble-xcframework.sh "Sentry" "-Dynamic" "" "xros,xrsimulator" $archivePattern
+        & ./scripts/validate-xcframework-format.sh "Sentry-Dynamic.xcframework"
+        Move-Item -Path "Sentry-Dynamic.xcframework" -Destination $visionOSXcframeworkPath -Force
+        $archivePath = Join-Path $buildPath "archive"
+        if (Test-Path $archivePath) {
+            Remove-Item -Path $archivePath -Recurse -Force
+        }
+    }
+
+    Write-Host "Setting up visionOS frameworks..." -ForegroundColor Yellow
+
+    if (Test-Path $visionOSDestination) {
+        Remove-Item -Path $visionOSDestination -Recurse -Force
+    }
+
+    Copy-Item -Path $visionOSXcframeworkPath -Destination $visionOSDestination -Recurse -Force
+
+    $visionOSInfoPlist = Join-Path $visionOSDestination "Info.plist"
+    if (-not (Test-Path $visionOSInfoPlist)) {
+        Write-Error "Failed to set up the visionOS SDK."
+        exit 1
+    }
+    Write-Host "visionOS SDK set up at: $visionOSDestination" -ForegroundColor Green
 
     ################ Build and set up macOS support ################
 
