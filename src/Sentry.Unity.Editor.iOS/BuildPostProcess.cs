@@ -11,14 +11,15 @@ namespace Sentry.Unity.Editor.iOS;
 
 public static class BuildPostProcess
 {
+    // BuildTarget.VisionOS = 42, use int to avoid compile-time dependency on Unity 6+
+    private const int BuildTargetVisionOS = 42;
+
+    internal static bool IsVisionOS(BuildTarget target) => (int)target == BuildTargetVisionOS;
+
     [PostProcessBuild(1)]
     public static void OnPostProcessBuild(BuildTarget target, string pathToProject)
     {
-        if (target != BuildTarget.iOS
-#if UNITY_6000_0_OR_NEWER
-            && target != BuildTarget.VisionOS
-#endif
-        )
+        if (target != BuildTarget.iOS && !IsVisionOS(target))
         {
             return;
         }
@@ -38,8 +39,7 @@ public static class BuildPostProcess
             return false;
         }
 
-#if UNITY_6000_0_OR_NEWER
-        if (target == BuildTarget.VisionOS)
+        if (IsVisionOS(target))
         {
             if (!options.VisionOsNativeSupportEnabled)
             {
@@ -48,7 +48,6 @@ public static class BuildPostProcess
             }
             return true;
         }
-#endif
 
         if (!options.IosNativeSupportEnabled)
         {
@@ -130,12 +129,10 @@ public static class BuildPostProcess
 
     internal static string GetPluginDirectory(BuildTarget target)
     {
-#if UNITY_6000_0_OR_NEWER
-        if (target == BuildTarget.VisionOS)
+        if (IsVisionOS(target))
         {
             return "visionOS";
         }
-#endif
         return "iOS";
     }
 

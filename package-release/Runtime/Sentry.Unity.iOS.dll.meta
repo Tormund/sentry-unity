@@ -24,7 +24,6 @@ PluginImporter:
         Exclude Win: 0
         Exclude Win64: 0
         Exclude iOS: 0
-        Exclude VisionOS: 0
   - first:
       Android: Android
     second:
@@ -81,16 +80,8 @@ PluginImporter:
       settings:
         AddToEmbeddedBinaries: false
         CPU: AnyCPU
-        CompileFlags:
-        FrameworkDependencies:
-  - first:
-      VisionOS: VisionOS
-    second:
-      enabled: 1
-      settings:
-        CPU: AnyCPU
-        CompileFlags:
-        FrameworkDependencies:
+        CompileFlags: 
+        FrameworkDependencies: 
   userData: 
   assetBundleName: 
   assetBundleVariant: 
