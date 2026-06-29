@@ -140,6 +140,21 @@ internal class SentryJava : ISentryJava
                 androidOptions.Call("setEnableScopeSync", options.NdkScopeSyncEnabled);
                 androidOptions.Call("setNativeSdkName", "sentry.native.android.unity");
 
+                androidOptions.Call("setAnrEnabled", options.AndroidNativeAnrEnabled);
+                androidOptions.Call("setEnableScopePersistence", options.AndroidNativeAnrEnabled);
+                androidOptions.Call("setReportHistoricalAnrs", options.AndroidReportHistoricalAnrs);
+                androidOptions.Call("setAttachAnrThreadDump", options.AndroidAttachAnrThreadDump);
+
+                using (var logsOptions = androidOptions.Call<AndroidJavaObject>("getLogs"))
+                {
+                    logsOptions.Call("setEnabled", options.EnableLogs);
+                }
+
+                using (var metricsOptions = androidOptions.Call<AndroidJavaObject>("getMetrics"))
+                {
+                    metricsOptions.Call("setEnabled", options.EnableMetrics);
+                }
+
                 // Options that are not to be set by the user
                 // We're disabling some integrations as to not duplicate event or because the SDK relies on the .NET SDK
                 // implementation of certain feature - i.e. Session Tracking
@@ -148,8 +163,6 @@ internal class SentryJava : ISentryJava
                 androidOptions.Call("setAttachScreenshot", false);
                 androidOptions.Call("setEnableAutoSessionTracking", false);
                 androidOptions.Call("setEnableActivityLifecycleBreadcrumbs", false);
-                androidOptions.Call("setAnrEnabled", false);
-                androidOptions.Call("setEnableScopePersistence", false);
                 // Disable user interaction tracking to prevent conflicts with VR platforms (e.g., Oculus InputHooks)
                 androidOptions.Call("setEnableUserInteractionBreadcrumbs", false);
                 androidOptions.Call("setEnableUserInteractionTracing", false);
@@ -291,6 +304,13 @@ internal class SentryJava : ISentryJava
             javaBreadcrumb.Set("category", breadcrumb.Category);
             using var javaLevel = breadcrumb.Level.ToJavaSentryLevel();
             javaBreadcrumb.Set("level", javaLevel);
+            if (breadcrumb.Data is { Count: > 0 })
+            {
+                foreach (var kvp in breadcrumb.Data)
+                {
+                    javaBreadcrumb.Call("setData", kvp.Key, kvp.Value);
+                }
+            }
             sentry.CallStatic("addBreadcrumb", javaBreadcrumb, null);
         });
     }

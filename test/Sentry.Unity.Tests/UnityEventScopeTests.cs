@@ -343,19 +343,83 @@ public sealed class UnityEventProcessorTests
     }
 
     [Test]
-    public void UserId_UnchangedIfNonEmpty()
+    public void UserId_DefaultUserIdOverwritesPreExisting()
     {
-        // arrange
-        var options = new SentryUnityOptions(application: _testApplication) { DefaultUserId = "foo" };
+        // arrange - simulates the .NET SDK's GlobalRootScopeIntegration pre-setting User.Id
+        // before UnityScopeIntegration runs. Unity's native installation id (DefaultUserId)
+        // must win so managed events and native crashes share the same User.Id.
+        var options = new SentryUnityOptions(application: _testApplication) { DefaultUserId = "native-id" };
         var sut = new UnityScopeUpdater(options, _testApplication);
         var scope = new Scope(options);
-        scope.User.Id = "bar";
+        scope.User.Id = "dotnet-installation-id";
 
         // act
         sut.ConfigureScope(scope);
 
         // assert
-        Assert.AreEqual(scope.User.Id, "bar");
+        Assert.AreEqual("native-id", scope.User.Id);
+    }
+
+    [Test]
+    public void UserId_DefaultUserIdIsSet()
+    {
+        // arrange
+        var options = new SentryUnityOptions(application: _testApplication) { DefaultUserId = "native-id" };
+
+        var sut = new UnityScopeUpdater(options, _testApplication);
+        var scope = new Scope(options);
+
+        // act
+        sut.ConfigureScope(scope);
+
+        // assert
+        Assert.AreEqual("native-id", scope.User.Id);
+    }
+
+    [Test]
+    public void UserId_ScopeSync_TriggeredWhenUserIdSet()
+    {
+        // arrange - enable scope sync with a tracking observer
+        var options = new SentryUnityOptions(application: _testApplication) { DefaultUserId = "sync-test-id" };
+        var observer = new TestScopeObserver(options);
+        options.ScopeObserver = observer;
+        options.EnableScopeSync = true;
+
+        var sut = new UnityScopeUpdater(options, _testApplication);
+        var scope = new Scope(options);
+
+        // act
+        sut.ConfigureScope(scope);
+
+        // assert - the observer should have received the SetUser call via PropertyChanged
+        Assert.IsNotNull(observer.LastUser, "ScopeObserver.SetUser should have been called");
+        Assert.AreEqual("sync-test-id", observer.LastUser!.Id);
+    }
+
+    [Test]
+    public void UserId_ScopeSync_TriggeredEvenWhenUserAlreadySet()
+    {
+        // arrange - simulates the .NET SDK pre-setting User.Id before UnityScopeIntegration runs.
+        // PopulateUser must still overwrite with DefaultUserId so the native SDK receives the
+        // native installation id via the scope observer.
+        var options = new SentryUnityOptions(application: _testApplication) { DefaultUserId = "native-id" };
+        var observer = new TestScopeObserver(options);
+        options.ScopeObserver = observer;
+        options.EnableScopeSync = true;
+
+        var sut = new UnityScopeUpdater(options, _testApplication);
+        var scope = new Scope(options);
+        scope.User.Id = "dotnet-installation-id";
+
+        // Reset observer after the initial scope.User.Id set above triggered it
+        observer.LastUser = null;
+
+        // act
+        sut.ConfigureScope(scope);
+
+        // assert - PopulateUser overwrote and synced the native id
+        Assert.IsNotNull(observer.LastUser, "ScopeObserver.SetUser should be called when DefaultUserId is set");
+        Assert.AreEqual("native-id", observer.LastUser!.Id);
     }
 
     [Test]
@@ -599,4 +663,22 @@ internal sealed class TestSentrySystemInfo : ISentrySystemInfo
     public Lazy<string>? CopyTextureSupport { get; set; }
     public Lazy<string>? RenderingThreadingMode { get; set; }
     public Lazy<DateTimeOffset>? StartTime { get; set; }
+}
+
+internal sealed class TestScopeObserver : ScopeObserver
+{
+    public SentryUser? LastUser { get; set; }
+
+    public TestScopeObserver(SentryOptions options) : base("Test", options) { }
+
+    public override void AddBreadcrumbImpl(Breadcrumb breadcrumb) { }
+    public override void SetExtraImpl(string key, string? value) { }
+    public override void SetTagImpl(string key, string value) { }
+    public override void UnsetTagImpl(string key) { }
+    public override void SetUserImpl(SentryUser user) => LastUser = user;
+    public override void UnsetUserImpl() => LastUser = null;
+    public override void SetTraceImpl(SentryId traceId, SpanId spanId) { }
+    public override void AddFileAttachmentImpl(string filePath, string fileName, string? contentType) { }
+    public override void AddByteAttachmentImpl(byte[] data, string fileName, string? contentType) { }
+    public override void ClearAttachmentsImpl() { }
 }

@@ -41,9 +41,17 @@ public class IntegrationOptionsConfiguration : SentryOptionsConfiguration
         // Disable ANR to avoid test interference
         options.DisableAnrIntegration();
 
+        // App Hang tracking
+        options.Experimental.EnableNativeAppHangTracking = true;
+        options.AppHangTimeout = TimeSpan.FromSeconds(2);
+
         // Runtime initialization for integration tests
         options.AndroidNativeInitializationType = NativeInitializationType.Runtime;
         options.IosNativeInitializationType = NativeInitializationType.Runtime;
+
+        options.Experimental.MacosBackend = MacosBackend.Cocoa;
+        options.Experimental.WindowsBackend = WindowsBackend.Crashpad;
+        options.Experimental.LinuxBackend = LinuxBackend.Breakpad;
 
         Debug.Log("Sentry: IntegrationOptionsConfig::Configure() finished");
     }

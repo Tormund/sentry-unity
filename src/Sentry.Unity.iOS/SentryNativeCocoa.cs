@@ -1,7 +1,6 @@
 using Sentry.Extensibility;
 using Sentry.Unity.Integrations;
 using UnityEngine;
-using UnityEngine.Analytics;
 
 namespace Sentry.Unity.iOS;
 
@@ -49,6 +48,13 @@ public static class SentryNativeCocoa
 
             var platformName = platform == RuntimePlatform.IPhonePlayer ? "iOS" : "visionOS";
             options.ScopeObserver = new NativeScopeObserver(platformName, options);
+
+            if (options.EnableAppHangTracking)
+            {
+                Logger?.LogDebug("Disabling the C# ANR watchdog - sentry-cocoa handles app hang detection.");
+                options.DisableAnrIntegration();
+            }
+
         }
         else
         {
@@ -77,24 +83,14 @@ public static class SentryNativeCocoa
         options.NativeSupportCloseCallback += () => Close(options);
         if (options.UnityInfo.IL2CPP)
         {
-            options.DefaultUserId = SentryCocoaBridgeProxy.GetInstallationId();
-            if (string.IsNullOrEmpty(options.DefaultUserId))
+            var installationId = SentryCocoaBridgeProxy.GetInstallationId();
+            if (!string.IsNullOrEmpty(installationId))
             {
-                // In case we can't get an installation ID we create one and sync that down to the native layer
-                Logger?.LogDebug("Failed to fetch 'Installation ID' from the native SDK. Creating new 'Default User ID'.");
-
-                // We fall back to Unity's Analytics Session Info: https://docs.unity3d.com/ScriptReference/Analytics.AnalyticsSessionInfo-userId.html
-                // It's a randomly generated GUID that gets created immediately after installation helping
-                // to identify the same instance of the game
-                options.DefaultUserId = AnalyticsSessionInfo.userId;
-                if (options.DefaultUserId is not null)
-                {
-                    options.ScopeObserver.SetUser(new SentryUser { Id = options.DefaultUserId });
-                }
-                else
-                {
-                    Logger?.LogDebug("Failed to create new 'Default User ID'.");
-                }
+                options.DefaultUserId = installationId;
+            }
+            else
+            {
+                Logger?.LogDebug("Failed to fetch 'Installation ID' from the native SDK.");
             }
         }
 

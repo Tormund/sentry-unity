@@ -30,7 +30,15 @@ internal static class SentryNativeBridge
 
         UseLibC = Application.platform
             is RuntimePlatform.LinuxPlayer or RuntimePlatform.LinuxServer
-            or RuntimePlatform.PS5 or RuntimePlatform.Switch;
+            or RuntimePlatform.PS5
+            or RuntimePlatform.Switch;
+        if ((Application.platform
+            is RuntimePlatform.OSXPlayer or RuntimePlatform.OSXServer)
+            && RuntimeInformation.ProcessArchitecture == Architecture.X64)
+        {
+            UseLibC = true;
+        }
+
         IsWindows = Application.platform
             is RuntimePlatform.WindowsPlayer or RuntimePlatform.WindowsServer
             or RuntimePlatform.GameCoreXboxSeries or RuntimePlatform.GameCoreXboxOne;
@@ -93,6 +101,16 @@ internal static class SentryNativeBridge
         }
 #endif
 
+        var shutdownTimeoutMs = (ulong)Math.Max(0, options.ShutdownTimeout.TotalMilliseconds);
+        Logger?.LogDebug("Setting ShutdownTimeout: {0}ms", shutdownTimeoutMs);
+        sentry_options_set_shutdown_timeout(cOptions, shutdownTimeoutMs);
+
+        Logger?.LogDebug("Setting EnableLogs: {0}", options.EnableLogs);
+        sentry_options_set_enable_logs(cOptions, options.EnableLogs ? 1 : 0);
+
+        Logger?.LogDebug("Setting EnableMetrics: {0}", options.EnableMetrics);
+        sentry_options_set_enable_metrics(cOptions, options.EnableMetrics ? 1 : 0);
+
         if (options.UnityInfo.IL2CPP)
         {
             Logger?.LogDebug("Setting the native logger");
@@ -102,6 +120,13 @@ internal static class SentryNativeBridge
         {
             Logger?.LogInfo("Passing the native logs back to the C# layer is not supported on Mono - skipping native logger.");
         }
+
+        Logger?.LogDebug("Setting EnableNativeAppHangTracking: {0}", options.Experimental.EnableNativeAppHangTracking);
+        sentry_options_set_enable_app_hang_tracking(cOptions, options.Experimental.EnableNativeAppHangTracking ? 1 : 0);
+
+        var appHangTimeoutMs = (ulong)Math.Max(0, options.AppHangTimeout.TotalMilliseconds);
+        Logger?.LogDebug("Setting AppHangTimeout: {0}ms", appHangTimeoutMs);
+        sentry_options_set_app_hang_timeout(cOptions, appHangTimeoutMs);
 
         Logger?.LogDebug("Initializing sentry native");
         return 0 == sentry_init(cOptions);
@@ -132,6 +157,8 @@ internal static class SentryNativeBridge
     }
 
     internal static void ReinstallBackend() => sentry_reinstall_backend();
+
+    internal static void AppHangHeartbeat() => sentry_app_hang_heartbeat();
 
     // libsentry.so
     [DllImport(SentryLib)]
@@ -165,6 +192,21 @@ internal static class SentryNativeBridge
 
     [DllImport(SentryLib)]
     private static extern void sentry_options_set_attach_screenshot(IntPtr options, int attachScreenshot);
+
+    [DllImport(SentryLib)]
+    private static extern void sentry_options_set_shutdown_timeout(IntPtr options, ulong shutdown_timeout);
+
+    [DllImport(SentryLib)]
+    private static extern void sentry_options_set_enable_logs(IntPtr options, int enable_logs);
+
+    [DllImport(SentryLib)]
+    private static extern void sentry_options_set_enable_metrics(IntPtr options, int enable_metrics);
+
+    [DllImport(SentryLib)]
+    private static extern void sentry_options_set_enable_app_hang_tracking(IntPtr options, int enabled);
+
+    [DllImport(SentryLib)]
+    private static extern void sentry_options_set_app_hang_timeout(IntPtr options, ulong timeout);
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl, SetLastError = true)]
     private delegate void sentry_logger_function_t(int level, IntPtr message, IntPtr argsAddress, IntPtr userData);
@@ -327,4 +369,7 @@ internal static class SentryNativeBridge
 
     [DllImport(SentryLib)]
     private static extern void sentry_reinstall_backend();
+
+    [DllImport(SentryLib)]
+    private static extern void sentry_app_hang_heartbeat();
 }

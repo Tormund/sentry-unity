@@ -165,6 +165,63 @@ public class ScriptableSentryUnityOptionsTests
         Assert.True(filters.OfType<UnityBadGatewayExceptionFilter>().Any());
     }
 
+    [Test]
+    public void Experimental_MacosBackend_DefaultValue_IsCocoa()
+    {
+        var scriptableOptions = ScriptableObject.CreateInstance<ScriptableSentryUnityOptions>();
+
+        Assert.AreEqual(MacosBackend.Cocoa, scriptableOptions.Experimental.MacosBackend);
+    }
+
+    [Test]
+    public void ToSentryUnityOptions_MacosBackendNative_Propagates()
+    {
+        var scriptableOptions = ScriptableObject.CreateInstance<ScriptableSentryUnityOptions>();
+        scriptableOptions.Experimental.MacosBackend = MacosBackend.Native;
+
+        var options = scriptableOptions.ToSentryUnityOptions(_fixture.Application);
+
+        Assert.AreEqual(MacosBackend.Native, options.Experimental.MacosBackend);
+    }
+
+    [Test]
+    public void Experimental_WindowsBackend_DefaultValue_IsCrashpad()
+    {
+        var scriptableOptions = ScriptableObject.CreateInstance<ScriptableSentryUnityOptions>();
+
+        Assert.AreEqual(WindowsBackend.Crashpad, scriptableOptions.Experimental.WindowsBackend);
+    }
+
+    [Test]
+    public void ToSentryUnityOptions_WindowsBackendNative_Propagates()
+    {
+        var scriptableOptions = ScriptableObject.CreateInstance<ScriptableSentryUnityOptions>();
+        scriptableOptions.Experimental.WindowsBackend = WindowsBackend.Native;
+
+        var options = scriptableOptions.ToSentryUnityOptions(_fixture.Application);
+
+        Assert.AreEqual(WindowsBackend.Native, options.Experimental.WindowsBackend);
+    }
+
+    [Test]
+    public void Experimental_LinuxBackend_DefaultValue_IsBreakpad()
+    {
+        var scriptableOptions = ScriptableObject.CreateInstance<ScriptableSentryUnityOptions>();
+
+        Assert.AreEqual(LinuxBackend.Breakpad, scriptableOptions.Experimental.LinuxBackend);
+    }
+
+    [Test]
+    public void ToSentryUnityOptions_LinuxBackendNative_Propagates()
+    {
+        var scriptableOptions = ScriptableObject.CreateInstance<ScriptableSentryUnityOptions>();
+        scriptableOptions.Experimental.LinuxBackend = LinuxBackend.Native;
+
+        var options = scriptableOptions.ToSentryUnityOptions(_fixture.Application);
+
+        Assert.AreEqual(LinuxBackend.Native, options.Experimental.LinuxBackend);
+    }
+
     public static void AssertOptions(SentryUnityOptions expected, SentryUnityOptions actual)
     {
         Assert.AreEqual(expected.Enabled, actual.Enabled);

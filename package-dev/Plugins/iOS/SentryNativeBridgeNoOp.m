@@ -6,6 +6,7 @@ int SentryNativeBridgeIsEnabled() { return 0; }
 void *_Nullable SentryNativeBridgeOptionsNew() { return nil; }
 void SentryNativeBridgeOptionsSetString(void *options, const char *name, const char *value) { }
 void SentryNativeBridgeOptionsSetInt(void *options, const char *name, int32_t value) { }
+void SentryNativeBridgeOptionsSetDouble(void *options, const char *name, double value) { }
 void SentryNativeBridgeOptionsAddFailedRequestStatusCodeRange(void *options, int32_t min, int32_t max) { }
 int SentryNativeBridgeStartWithOptions(void *options) { return 0; }
 
@@ -15,8 +16,8 @@ int SentryNativeBridgeCrashedLastRun() { return 0; }
 
 void SentryNativeBridgeClose() { }
 
-void SentryNativeBridgeAddBreadcrumb(
-    const char *timestamp, const char *message, const char *type, const char *category, int level) { }
+void SentryNativeBridgeAddBreadcrumb(const char *timestamp, const char *message, const char *type,
+    const char *category, int level, const char **dataKeys, const char **dataValues, int dataCount) { }
 
 void SentryNativeBridgeSetExtra(const char *key, const char *value) { }
 

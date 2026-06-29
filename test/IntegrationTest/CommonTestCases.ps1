@@ -14,6 +14,27 @@ $CommonTestCases = @(
             $eventId | Should -Not -BeNullOrEmpty
         }
     }
+    @{ Name = "DependencyConflict package coexists with Sentry at runtime"; TestBlock = {
+            param($TestSetup, $TestType, $SentryEvent, $RunResult)
+            # IntegrationTester invokes the DependencyConflict package in Awake on every
+            # launch. It ships plain, UNALIASED System.*/Microsoft.* assemblies alongside
+            # Sentry's aliased copies, so a successful greeting proves the two dependency
+            # sets coexist at runtime. The build already fails to compile/link if aliasing
+            # regresses; this asserts the runtime path too, so a runtime conflict turns the
+            # build red rather than being swallowed into a log line.
+
+            # The DependencyConflict package is not installed on Unity 2021 + WebGL
+            if ($TestSetup.Platform -eq "WebGL" -and $TestSetup.UnityVersion -like "2021*") {
+                Set-ItResult -Skipped -Because "DependencyConflict is not installed on Unity 2021 + WebGL"
+                return
+            }
+
+            $RunResult.Output | Where-Object { $_ -match "DependencyConflict: FAILED" } |
+                Should -BeNullOrEmpty -Because "the DependencyConflict package threw at runtime - assembly aliasing likely regressed"
+            $RunResult.Output | Where-Object { $_ -match "DependencyConflict: Dependencies say hi" } |
+                Should -Not -BeNullOrEmpty -Because "the DependencyConflict package must run successfully to prove unaliased deps coexist with Sentry"
+        }
+    }
     @{ Name = "Captures event in sentry.io"; TestBlock = {
             param($TestSetup, $TestType, $SentryEvent, $RunResult)
             $SentryEvent | Should -Not -BeNullOrEmpty

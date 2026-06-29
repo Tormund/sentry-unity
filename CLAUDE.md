@@ -131,12 +131,12 @@ The CI system uses modular, reusable workflows in `.github/workflows/`:
 | 6000.0.x | Yes        | Yes         |
 | 6000.1.x | No         | Yes         |
 
-Version mapping is defined in `scripts/ci-env.ps1`:
+Version mapping is defined in `scripts/unity-versions.json` (each entry has a `version` and a `changeset`):
 
 - `2021.3` → `2021.3.45f2`
-- `2022.3` → `2022.3.70f1`
-- `6000.0` → `6000.0.48f1`
-- `6000.1` → `6000.1.17f1`
+- `2022.3` → `2022.3.62f3`
+- `6000.0` → `6000.0.74f1`
+- `6000.3` → `6000.3.14f1`
 
 ### Docker-Based Builds
 
@@ -148,17 +148,19 @@ Builds run in Docker containers using `ghcr.io/unityci/editor` images:
 
 ### MSBuild Targets
 
-Key targets defined in `Directory.Build.targets`:
+Key targets defined across `build/` target files:
 
-| Target               | Purpose                                 |
-| -------------------- | --------------------------------------- |
-| `DownloadNativeSDKs` | Downloads prebuilt native SDKs from CI  |
-| `BuildAndroidSDK`    | Builds Android SDK via Gradle           |
-| `BuildLinuxSDK`      | Builds Linux SDK via CMake              |
-| `BuildWindowsSDK`    | Builds Windows SDK via CMake (Crashpad) |
-| `BuildCocoaSDK`      | Downloads iOS/macOS SDKs from releases  |
-| `UnityEditModeTest`  | Runs edit-mode unit tests               |
-| `UnityPlayModeTest`  | Runs play-mode tests                    |
+| Target                  | Purpose                                                                 |
+| ----------------------- | ----------------------------------------------------------------------- |
+| `BuildCocoaSDK`         | Builds iOS + macOS SDKs via Xcode (`build/native-sdks.targets`)          |
+| `BuildAndroidSDK`       | Builds Android SDK via Gradle (`build/native-sdks.targets`)              |
+| `BuildLinuxSDK`         | Builds Linux SDK via CMake (`build/native-sdks.targets`)                 |
+| `BuildWindowsSDK`       | Builds Windows SDK via CMake + Crashpad (`build/native-sdks.targets`)    |
+| `Ensure<Platform>SDK`   | Auto-bootstrap wrapper; fires from `dotnet build` when artifacts missing |
+| `PublishNativeNdkLocal` | Builds and publishes `sentry-native-ndk` to `~/.m2`                      |
+| `DownloadNativeSDKs`    | Downloads prebuilt native SDKs from CI (`build/local-dev.targets`)       |
+| `UnityEditModeTest`     | Runs edit-mode unit tests                                                |
+| `UnityPlayModeTest`     | Runs play-mode tests                                                     |
 
 ### Artifact Caching
 
@@ -190,7 +192,7 @@ Key targets defined in `Directory.Build.targets`:
 
 ### Build System
 
-Central configuration in `Directory.Build.targets` (900+ lines) and `Directory.Build.props`:
+Core build configuration in `Directory.Build.props`. Build targets are split across `Directory.Build.targets` (CI-shared: `FindUnity`, Unity test/configure targets), `build/native-sdks.targets` (native SDK builders), and `build/local-dev.targets` (developer convenience targets):
 
 ```xml
 <!-- Key properties -->
@@ -216,13 +218,12 @@ Downloads prebuilt native SDKs from CI artifacts or releases:
 
 ### Assembly Aliasing
 
-Prevents symbol conflicts with user dependencies using `assemblyalias` tool:
+Prevents symbol conflicts with user dependencies using `assemblyalias` tool. The
+invocation (alias patterns + the BCL exclude list) lives in one place,
+`scripts/alias-assemblies.ps1`, which `repack.ps1` and CI (`build.yml`) both call:
 
-```bash
-pwsh scripts/build-and-alias.ps1
-```
-
-- Runtime assemblies: `Microsoft*`, `System*` → prefixed with `Sentry.`
+- Runtime assemblies: `Microsoft*`, `System*` → prefixed with `Sentry.` (excluding the
+  BCL facades Unity's unityaot profile already provides — see the script's comment)
 - Editor assemblies: `Microsoft*`, `Mono.Cecil*` → prefixed with `Sentry.`
 
 ### Package Structure
@@ -247,7 +248,7 @@ Scripts involved:
 
 - `scripts/pack.ps1` - Creates the release package
 - `scripts/repack.ps1` - Full preparation pipeline
-- `scripts/build-and-alias.ps1` - Build with assembly aliasing
+- `scripts/alias-assemblies.ps1` - Single source of truth for the assembly-aliasing invocation
 
 ### Package Validation
 
@@ -318,6 +319,41 @@ modules/
 ├── sentry-java/    # Android SDK (Gradle build)
 ├── sentry-native/  # Windows/Linux/macOS (CMake build)
 └── sentry-cocoa/   # iOS/macOS (prebuilt XCFramework)
+```
+
+### Local Android NDK Development
+
+`BuildAndroidSDK` builds the NDK from source on every run (via `PublishNativeNdkLocal`)
+and ships the resulting AAR alongside the sentry-java artifacts. Both
+`modules/sentry-java` AND `modules/sentry-native` must be checked out — the target
+aborts otherwise and prints the `git submodule update --init` command.
+
+sentry-java's `dependencyResolutionManagement` block already lists `mavenLocal()`,
+so Gradle resolves whatever version is declared in
+`modules/sentry-java/gradle/libs.versions.toml` — falling through to Maven Central
+when the version isn't found locally.
+
+**The local build must publish a version that is NOT available on Maven Central.**
+Otherwise Gradle uses the released artifact on Central (listed before `mavenLocal()`
+in the repositories block) and your local changes are silently ignored.
+
+To iterate on NDK code:
+
+1. Bump the version in the sentry-native NDK source to something unique — e.g.
+   add a `-dev`, `-SNAPSHOT`, or hash suffix that doesn't exist on Maven Central.
+2. Bump the matching `sentry-native-ndk` version in
+   `modules/sentry-java/gradle/libs.versions.toml` to the same value.
+3. Run `dotnet msbuild /t:BuildAndroidSDK src/Sentry.Unity`. The target rebuilds
+   the NDK, publishes it to `~/.m2`, then builds sentry-java against the local
+   artifact.
+
+To refresh only `~/.m2` without rebuilding the Android SDK:
+
+```bash
+dotnet msbuild /t:PublishNativeNdkLocal src/Sentry.Unity
+# Purge cached Gradle artifacts (use when iterating on NDK source without
+# bumping the version, so Gradle re-resolves rather than reusing its cache):
+dotnet msbuild /t:PublishNativeNdkLocal src/Sentry.Unity -p:PurgeNdkCache=true
 ```
 
 ### Key Source Files
@@ -574,6 +610,26 @@ Located in `test/Scripts.Integration.Test/`:
 | `build-project.ps1`      | Builds for target platform           |
 | `measure-build-size.ps1` | Compares build size with/without SDK |
 | `integration-test.ps1`   | Full local integration test          |
+| `add-dependency-conflict.ps1` | Adds the DependencyConflict alias stress-test package |
+
+### Assembly Aliasing Regression Test (`DependencyConflict`)
+
+`test/Scripts.Integration.Test/DependencyConflictPackage/` is a committed fixture that
+stress-tests the SDK's assembly aliasing. It is a tiny UPM package shipping
+**plain, unaliased** `System.*`/`Microsoft.*` assemblies at versions that differ
+from the ones the SDK ships aliased in `package-dev`. Both packages are installed
+into the same integration test project; `IntegrationTester.cs` calls into it on
+startup (logging `"Dependencies say hi"`), forcing the unaliased assemblies to be
+linked alongside Sentry's aliased copies.
+
+- The DLLs are built in `build.yml` (it has the pinned .NET SDK) and uploaded as
+  the `dependency-conflict-package` artifact; integration jobs download it and run
+  `add-dependency-conflict.ps1` to embed it in the test project.
+- Only the Unity metadata (`.meta`, asmdef, `package.json`) is committed;
+  `DependencyConflict/Runtime/*.dll` is gitignored and rebuilt via
+  `dotnet build test/Scripts.Integration.Test/DependencyConflictPackage`.
+- **A red integration build is the regression signal** — if aliasing breaks, the
+  duplicate assemblies collide and the project no longer builds.
 
 ### Local Integration Testing
 

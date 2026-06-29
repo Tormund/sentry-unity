@@ -66,11 +66,23 @@ internal static class SentryCocoaBridgeProxy
         // See https://github.com/getsentry/sentry-unity/issues/1658
         OptionsSetInt(cOptions, "enableNetworkBreadcrumbs", 0);
 
+        Logger?.LogDebug("Setting EnableAppHangTracking: {0}", options.EnableAppHangTracking);
+        OptionsSetInt(cOptions, "enableAppHangTracking", options.EnableAppHangTracking ? 1 : 0);
+
+        Logger?.LogDebug("Setting AppHangTimeoutInterval: {0}s", options.AppHangTimeout.TotalSeconds);
+        OptionsSetDouble(cOptions, "appHangTimeoutInterval", options.AppHangTimeout.TotalSeconds);
+
         Logger?.LogDebug("Setting EnableWatchdogTerminationTracking: {0}", options.IosWatchdogTerminationIntegrationEnabled);
         OptionsSetInt(cOptions, "enableWatchdogTerminationTracking", options.IosWatchdogTerminationIntegrationEnabled ? 1 : 0);
 
         Logger?.LogDebug("Setting CaptureFailedRequests: {0}", options.CaptureFailedRequests);
         OptionsSetInt(cOptions, "enableCaptureFailedRequests", options.CaptureFailedRequests ? 1 : 0);
+
+        Logger?.LogDebug("Setting EnableLogs: {0}", options.EnableLogs);
+        OptionsSetInt(cOptions, "enableLogs", options.EnableLogs ? 1 : 0);
+
+        Logger?.LogDebug("Setting EnableMetrics: {0}", options.EnableMetrics);
+        OptionsSetInt(cOptions, "enableMetrics", options.EnableMetrics ? 1 : 0);
 
         foreach (var range in options.FailedRequestStatusCodes)
         {
@@ -97,6 +109,9 @@ internal static class SentryCocoaBridgeProxy
     [DllImport("__Internal", EntryPoint = "SentryNativeBridgeOptionsSetInt")]
     private static extern void OptionsSetInt(IntPtr options, string name, int value);
 
+    [DllImport("__Internal", EntryPoint = "SentryNativeBridgeOptionsSetDouble")]
+    private static extern void OptionsSetDouble(IntPtr options, string name, double value);
+
     [DllImport("__Internal", EntryPoint = "SentryNativeBridgeOptionsAddFailedRequestStatusCodeRange")]
     private static extern void OptionsAddFailedRequestStatusCodeRange(IntPtr options, int min, int max);
 
@@ -113,7 +128,8 @@ internal static class SentryCocoaBridgeProxy
     public static extern void Close();
 
     [DllImport("__Internal", EntryPoint = "SentryNativeBridgeAddBreadcrumb")]
-    public static extern void AddBreadcrumb(string timestamp, string? message, string? type, string? category, int level);
+    public static extern void AddBreadcrumb(string timestamp, string? message, string? type, string? category, int level,
+        string[]? dataKeys, string[]? dataValues, int dataCount);
 
     [DllImport("__Internal", EntryPoint = "SentryNativeBridgeSetExtra")]
     public static extern void SetExtra(string key, string? value);

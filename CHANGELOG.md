@@ -1,6 +1,123 @@
 # Changelog
 
-## Unreleased
+## 4.6.0
+
+### Features
+
+- Updated the dependency resolution within the SDK. This enables .NET Standard 2.1 both for building the SDK from source and for setting the Api Compatibility Level in the Player Settings in your project. The assembly aliasing was originally intended to prevent dependency conflicts the SDK might introduce by deeply renaming its bundled dependencies. However, this prevented Unity from resolving these dependencies at build time, creating ambiguity for certain types. To resolve this, the SDK now excludes `System.Buffers`, `System.Memory`, `System.Numerics.Vectors`, and `System.Threading.Tasks.Extensions` from being aliased, letting the Unity build pipeline handle them. ([#2726](https://github.com/getsentry/sentry-unity/pull/2726))
+- Added the experimental `options.Experimental.EnableNativeAppHangTracking` (default `false`) to enable app hang detection via `sentry-native` on macOS, Windows, and Linux. On macOS, this requires the macOS backend to be switched to `Native` instead of `Cocoa` in the Advanced -> Experimental settings. `sentry-native` monitors the main thread and produces an event including a stack trace for the hang, reusing the top-level `AppHangTimeout` (default `5s`). When effective, the Unity SDK's C# watchdog is skipped to avoid duplicate reports. iOS app hang detection remains controlled by the top-level `EnableAppHangTracking`. ([#2709](https://github.com/getsentry/sentry-unity/pull/2709))
+
+### Dependencies
+
+- Bump Native SDK from v0.15.1 to v0.15.2 ([#2728](https://github.com/getsentry/sentry-unity/pull/2728), [#2737](https://github.com/getsentry/sentry-unity/pull/2737))
+  - [changelog](https://github.com/getsentry/sentry-native/blob/master/CHANGELOG.md#0152)
+  - [diff](https://github.com/getsentry/sentry-native/compare/0.15.1...0.15.2)
+- Bump Java SDK from v8.44.1 to v8.46.0 ([#2731](https://github.com/getsentry/sentry-unity/pull/2731), [#2738](https://github.com/getsentry/sentry-unity/pull/2738))
+  - [changelog](https://github.com/getsentry/sentry-java/blob/main/CHANGELOG.md#8460)
+  - [diff](https://github.com/getsentry/sentry-java/compare/8.44.1...8.46.0)
+- Bump Cocoa SDK from v9.18.0 to v9.19.0 ([#2732](https://github.com/getsentry/sentry-unity/pull/2732))
+  - [changelog](https://github.com/getsentry/sentry-cocoa/blob/main/CHANGELOG.md#9190)
+  - [diff](https://github.com/getsentry/sentry-cocoa/compare/9.18.0...9.19.0)
+
+## 4.5.0
+
+### Fixes
+
+- The SDK now also syncs breadcrumb data to the native layer so they are available on events coming from the native SDKs ([#2720](https://github.com/getsentry/sentry-unity/pull/2720))
+- Removed `Lumin` and `Stadia` platforms from the package's assembly definition to resolve compilation errors. ([#2716](https://github.com/getsentry/sentry-unity/pull/2716))
+
+### Features
+
+- Extend the experimental `sentry-native` backend to Linux. Opt in via `options.Experimental.LinuxBackend = LinuxBackend.Native`. The `sentry-native` backend uploads crashes immediately through an out-of-process handler and enables further updates such as `AppHangTracking` support ([#2708](https://github.com/getsentry/sentry-unity/pull/2708))
+
+### Dependencies
+
+- Bump Java SDK from v8.43.0 to v8.44.1 ([#2706](https://github.com/getsentry/sentry-unity/pull/2706), [#2711](https://github.com/getsentry/sentry-unity/pull/2711), [#2723](https://github.com/getsentry/sentry-unity/pull/2723), [#2720](https://github.com/getsentry/sentry-unity/pull/2720))
+  - [changelog](https://github.com/getsentry/sentry-java/blob/main/CHANGELOG.md#8441)
+  - [diff](https://github.com/getsentry/sentry-java/compare/8.43.0...8.44.1)
+- Bump Cocoa SDK from v9.15.0 to v9.18.0 ([#2705](https://github.com/getsentry/sentry-unity/pull/2705), [#2713](https://github.com/getsentry/sentry-unity/pull/2713), [#2724](https://github.com/getsentry/sentry-unity/pull/2724))
+  - [changelog](https://github.com/getsentry/sentry-cocoa/blob/main/CHANGELOG.md#9180)
+  - [diff](https://github.com/getsentry/sentry-cocoa/compare/9.15.0...9.18.0)
+- Bump Native SDK from v0.14.2 to v0.15.1 ([#2714](https://github.com/getsentry/sentry-unity/pull/2714), [#2725](https://github.com/getsentry/sentry-unity/pull/2725))
+  - [changelog](https://github.com/getsentry/sentry-native/blob/master/CHANGELOG.md#0151)
+  - [diff](https://github.com/getsentry/sentry-native/compare/0.14.2...0.15.1)
+- Bump CLI from v3.5.0 to v3.5.1 ([#2719](https://github.com/getsentry/sentry-unity/pull/2719))
+  - [changelog](https://github.com/getsentry/sentry-cli/blob/master/CHANGELOG.md#351)
+  - [diff](https://github.com/getsentry/sentry-cli/compare/3.5.0...3.5.1)
+
+## 4.4.0
+
+### Features
+
+- Introduce `sentry-native` as an experimental backend on macOS and Windows. Opt in via `options.Experimental.MacosBackend = MacosBackend.Native` or `options.Experimental.WindowsBackend = WindowsBackend.Native`. The `sentry-native` backend uploads crashes immediately and enables further updates such as `AppHangTracking` support ([#2687](https://github.com/getsentry/sentry-unity/pull/2687), [#2692](https://github.com/getsentry/sentry-unity/pull/2692))
+
+### Fixes
+
+- The SDK now uses Gradle's built-in Exec task type when setting up the automated debug symbol upload. This resolves builds failing when targeting Android on Unity 6.4 ([#2686](https://github.com/getsentry/sentry-unity/pull/2686))
+- When targeting iOS, the SDK no longer crashes in `urlSessionTask:setState:` when handling an `AVAssetDownloadTask` ([#2677](https://github.com/getsentry/sentry-unity/pull/2677))
+
+### Features
+
+- Added `EnableAppHangTracking` (default `true`) and `AppHangTimeout` (default `5s`) to enable app hang detection via the native SDK. Currently effective on iOS through `sentry-cocoa`, which monitors the main thread and produces a stack trace for the hang event. On other platforms this is a no-op until each platform's native hang detection lands. When enabled on iOS, the Unity SDK's C# watchdog is skipped to avoid duplicate reports ([#2679](https://github.com/getsentry/sentry-unity/pull/2679))
+- Added `AndroidNativeAnrEnabled` (default `true`) to enable ANR detection through the `sentry-java` SDK. The native ANR integration monitors the Android UI thread. On API ≥ 30 this uses [ANR v2](https://docs.sentry.io/platforms/android/configuration/app-not-respond/) via `ApplicationExitInfo` to report OS-detected ANRs from prior runs; on API < 30 it falls back to an in-process watchdog. This is complementary to the Unity SDK's C# watchdog, which monitors the Unity player loop. ([#2671](https://github.com/getsentry/sentry-unity/pull/2671))
+
+### Dependencies
+
+- Bump Cocoa SDK from v9.12.0 to v9.15.0 ([#2670](https://github.com/getsentry/sentry-unity/pull/2670), [#2677](https://github.com/getsentry/sentry-unity/pull/2677), [#2694](https://github.com/getsentry/sentry-unity/pull/2694), [#2697](https://github.com/getsentry/sentry-unity/pull/2697))
+  - [changelog](https://github.com/getsentry/sentry-cocoa/blob/main/CHANGELOG.md#9150)
+  - [diff](https://github.com/getsentry/sentry-cocoa/compare/9.12.0...9.15.0)
+- Bump Java SDK from v8.40.0 to v8.43.0 ([#2669](https://github.com/getsentry/sentry-unity/pull/2669), [#2691](https://github.com/getsentry/sentry-unity/pull/2691), [#2696](https://github.com/getsentry/sentry-unity/pull/2696))
+  - [changelog](https://github.com/getsentry/sentry-java/blob/main/CHANGELOG.md#8430)
+  - [diff](https://github.com/getsentry/sentry-java/compare/8.40.0...8.43.0)
+- Bump CLI from v3.4.1 to v3.5.0 ([#2678](https://github.com/getsentry/sentry-unity/pull/2678), [#2693](https://github.com/getsentry/sentry-unity/pull/2693), [#2703](https://github.com/getsentry/sentry-unity/pull/2703))
+  - [changelog](https://github.com/getsentry/sentry-cli/blob/master/CHANGELOG.md#350)
+  - [diff](https://github.com/getsentry/sentry-cli/compare/3.4.1...3.5.0)
+- Bump Native SDK from v0.14.0 to v0.14.2 ([#2685](https://github.com/getsentry/sentry-unity/pull/2685))
+  - [changelog](https://github.com/getsentry/sentry-native/blob/master/CHANGELOG.md#0142)
+  - [diff](https://github.com/getsentry/sentry-native/compare/0.14.0...0.14.2)
+- Bump .NET SDK from v6.6.0-1-g4a85500a to v6.6.0 ([#2698](https://github.com/getsentry/sentry-unity/pull/2698))
+  - [changelog](https://github.com/getsentry/sentry-dotnet/blob/main/CHANGELOG.md#660)
+  - [diff](https://github.com/getsentry/sentry-dotnet/compare/6.6.0-1-g4a85500a...6.6.0)
+
+## 4.3.1
+
+### Fixes
+
+- The SDK no longer sends screenshot attachments for events that were dropped during processing (e.g., by `BeforeSend` or sampling). ([#2661](https://github.com/getsentry/sentry-unity/pull/2661))
+- The SDK now forwards `EnableLogs` and `EnableMetrics` to the native layer. ([#2662](https://github.com/getsentry/sentry-unity/pull/2662))
+
+### Dependencies
+
+- Bump .NET SDK from v6.3.1 to v6.5.0 ([#2661](https://github.com/getsentry/sentry-unity/pull/2661))
+  - [changelog](https://github.com/getsentry/sentry-dotnet/blob/main/CHANGELOG.md#650)
+  - [diff](https://github.com/getsentry/sentry-dotnet/compare/6.3.1...6.5.0)
+- Bump Native SDK from v0.13.5 to v0.14.0 ([#2660](https://github.com/getsentry/sentry-unity/pull/2660))
+  - [changelog](https://github.com/getsentry/sentry-native/blob/master/CHANGELOG.md#0140)
+  - [diff](https://github.com/getsentry/sentry-native/compare/0.13.5...0.14.0)
+- Bump Java SDK from v8.39.0 to v8.40.0 ([#2653](https://github.com/getsentry/sentry-unity/pull/2653))
+  - [changelog](https://github.com/getsentry/sentry-java/blob/main/CHANGELOG.md#8400)
+  - [diff](https://github.com/getsentry/sentry-java/compare/8.39.0...8.40.0)
+- Bump Cocoa SDK from v9.8.0 to v9.12.0 ([#2658](https://github.com/getsentry/sentry-unity/pull/2658))
+  - [changelog](https://github.com/getsentry/sentry-cocoa/blob/main/CHANGELOG.md#9120)
+  - [diff](https://github.com/getsentry/sentry-cocoa/compare/9.8.0...9.12.0)
+- Bump CLI from v3.3.5 to v3.4.1 ([#2656](https://github.com/getsentry/sentry-unity/pull/2656))
+  - [changelog](https://github.com/getsentry/sentry-cli/blob/master/CHANGELOG.md#341)
+  - [diff](https://github.com/getsentry/sentry-cli/compare/3.3.5...3.4.1)
+
+## 4.3.0
+
+### Dependencies
+
+- Bump Java SDK from v8.37.1 to v8.39.0 ([#2646](https://github.com/getsentry/sentry-unity/pull/2646))
+  - [changelog](https://github.com/getsentry/sentry-java/blob/main/CHANGELOG.md#8390)
+  - [diff](https://github.com/getsentry/sentry-java/compare/8.37.1...8.39.0)
+
+## 4.2.0
+
+### Behavioral Changes
+
+- The SDK no longer relies on UnityEngine.Analytics.AnalyticsSessionInfo to determine unique users but uses SDK-internal mechanisms instead. ([#2625](https://github.com/getsentry/sentry-unity/pull/2625))
+- Metrics are now enabled by default, matching the cross-SDK standard. The `EnableMetrics` setting is now also synced to the native SDK on Windows, Linux, and consoles. ([#2635](https://github.com/getsentry/sentry-unity/pull/2635))
 
 ### Fixes
 
@@ -17,18 +134,18 @@
 - Bump Cocoa SDK from v9.7.0 to v9.8.0 ([#2596](https://github.com/getsentry/sentry-unity/pull/2596))
   - [changelog](https://github.com/getsentry/sentry-cocoa/blob/main/CHANGELOG.md#980)
   - [diff](https://github.com/getsentry/sentry-cocoa/compare/9.7.0...9.8.0)
-- Bump Native SDK from v0.13.2 to v0.13.4 ([#2597](https://github.com/getsentry/sentry-unity/pull/2597), [#2612](https://github.com/getsentry/sentry-unity/pull/2612))
-  - [changelog](https://github.com/getsentry/sentry-native/blob/master/CHANGELOG.md#0134)
-  - [diff](https://github.com/getsentry/sentry-native/compare/0.13.2...0.13.4)
+- Bump Native SDK from v0.13.2 to v0.13.5 ([#2597](https://github.com/getsentry/sentry-unity/pull/2597), [#2612](https://github.com/getsentry/sentry-unity/pull/2612), [#2631](https://github.com/getsentry/sentry-unity/pull/2631))
+  - [changelog](https://github.com/getsentry/sentry-native/blob/master/CHANGELOG.md#0135)
+  - [diff](https://github.com/getsentry/sentry-native/compare/0.13.2...0.13.5)
 - Bump Java SDK from v8.35.0 to v8.37.1 ([#2591](https://github.com/getsentry/sentry-unity/pull/2591), [#2605](https://github.com/getsentry/sentry-unity/pull/2605))
   - [changelog](https://github.com/getsentry/sentry-java/blob/main/CHANGELOG.md#8371)
   - [diff](https://github.com/getsentry/sentry-java/compare/8.35.0...8.37.1)
 - Bump CLI from v3.3.3 to v3.3.5 ([#2604](https://github.com/getsentry/sentry-unity/pull/2604), [#2614](https://github.com/getsentry/sentry-unity/pull/2614))
   - [changelog](https://github.com/getsentry/sentry-cli/blob/master/CHANGELOG.md#335)
   - [diff](https://github.com/getsentry/sentry-cli/compare/3.3.3...3.3.5)
-- Bump .NET SDK from v6.2.0 to v6.3.0 ([#2615](https://github.com/getsentry/sentry-unity/pull/2615))
-  - [changelog](https://github.com/getsentry/sentry-dotnet/blob/main/CHANGELOG.md#630)
-  - [diff](https://github.com/getsentry/sentry-dotnet/compare/6.2.0...6.3.0)
+- Bump .NET SDK from v6.2.0 to v6.3.1 ([#2615](https://github.com/getsentry/sentry-unity/pull/2615), [#2632](https://github.com/getsentry/sentry-unity/pull/2632))
+  - [changelog](https://github.com/getsentry/sentry-dotnet/blob/main/CHANGELOG.md#631)
+  - [diff](https://github.com/getsentry/sentry-dotnet/compare/6.2.0...6.3.1)
 
 ## 4.1.2
 

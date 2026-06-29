@@ -121,6 +121,12 @@ void SentryNativeBridgeOptionsSetInt(const void *options, const char *name, int3
     dictOptions[[NSString stringWithUTF8String:name]] = [NSNumber numberWithInt:value];
 }
 
+void SentryNativeBridgeOptionsSetDouble(const void *options, const char *name, double value)
+{
+    NSMutableDictionary *dictOptions = (__bridge NSMutableDictionary *)options;
+    dictOptions[[NSString stringWithUTF8String:name]] = [NSNumber numberWithDouble:value];
+}
+
 void SentryNativeBridgeOptionsAddFailedRequestStatusCodeRange(const void *options, int32_t min, int32_t max)
 {
     NSMutableDictionary *dictOptions = (__bridge NSMutableDictionary *)options;
@@ -202,8 +208,8 @@ void SentryNativeBridgeClose()
     }
 }
 
-void SentryNativeBridgeAddBreadcrumb(
-    const char *timestamp, const char *message, const char *type, const char *category, int level)
+void SentryNativeBridgeAddBreadcrumb(const char *timestamp, const char *message, const char *type,
+    const char *category, int level, const char **dataKeys, const char **dataValues, int dataCount)
 {
     if (timestamp == NULL && message == NULL && type == NULL && category == NULL) {
         return;
@@ -237,6 +243,18 @@ void SentryNativeBridgeAddBreadcrumb(
         }
 
         [breadcrumb setValue:[NSNumber numberWithInt:level] forKey:@"level"];
+
+        if (dataCount > 0 && dataKeys != NULL && dataValues != NULL) {
+            NSMutableDictionary *data = [NSMutableDictionary dictionaryWithCapacity:dataCount];
+            for (int i = 0; i < dataCount; i++) {
+                NSString *key = _NSStringOrNil(dataKeys[i]);
+                NSString *value = _NSStringOrNil(dataValues[i]);
+                if (key != nil && value != nil) {
+                    data[key] = value;
+                }
+            }
+            [breadcrumb setValue:data forKey:@"data"];
+        }
 
         [scope performSelector:@selector(addBreadcrumb:) withObject:breadcrumb];
     });

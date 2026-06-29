@@ -114,4 +114,64 @@ public sealed class SentryUnityOptionsTests
 
         Assert.AreEqual(expectedValue, sut.IsEnvironmentUser);
     }
+
+    [Test]
+    public void Options_Experimental_MacosBackend_DefaultsToCocoa()
+    {
+        var options = new SentryUnityOptions();
+        Assert.AreEqual(MacosBackend.Cocoa, options.Experimental.MacosBackend);
+    }
+
+    [Test]
+    public void Options_Experimental_MacosBackend_IsSettable()
+    {
+        var options = new SentryUnityOptions();
+        options.Experimental.MacosBackend = MacosBackend.Native;
+        Assert.AreEqual(MacosBackend.Native, options.Experimental.MacosBackend);
+    }
+
+    [Test]
+    public void Options_Experimental_WindowsBackend_DefaultsToCrashpad()
+    {
+        var options = new SentryUnityOptions();
+        Assert.AreEqual(WindowsBackend.Crashpad, options.Experimental.WindowsBackend);
+    }
+
+    [Test]
+    public void Options_Experimental_WindowsBackend_IsSettable()
+    {
+        var options = new SentryUnityOptions();
+        options.Experimental.WindowsBackend = WindowsBackend.Native;
+        Assert.AreEqual(WindowsBackend.Native, options.Experimental.WindowsBackend);
+    }
+
+    [Test]
+    public void Options_Experimental_LinuxBackend_DefaultsToBreakpad()
+    {
+        var options = new SentryUnityOptions();
+        Assert.AreEqual(LinuxBackend.Breakpad, options.Experimental.LinuxBackend);
+    }
+
+    [Test]
+    public void Options_Experimental_LinuxBackend_IsSettable()
+    {
+        var options = new SentryUnityOptions();
+        options.Experimental.LinuxBackend = LinuxBackend.Native;
+        Assert.AreEqual(LinuxBackend.Native, options.Experimental.LinuxBackend);
+    }
+
+    [Test]
+    public void Options_Experimental_EnableNativeAppHangTracking_DefaultsToFalse()
+    {
+        var options = new SentryUnityOptions();
+        Assert.IsFalse(options.Experimental.EnableNativeAppHangTracking);
+    }
+
+    [Test]
+    public void Options_Experimental_EnableNativeAppHangTracking_IsSettable()
+    {
+        var options = new SentryUnityOptions();
+        options.Experimental.EnableNativeAppHangTracking = true;
+        Assert.IsTrue(options.Experimental.EnableNativeAppHangTracking);
+    }
 }

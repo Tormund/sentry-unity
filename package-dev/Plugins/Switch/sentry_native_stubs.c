@@ -108,6 +108,36 @@ void sentry_options_set_attach_screenshot(void* options, int attach)
     (void)attach;
 }
 
+void sentry_options_set_enable_metrics(void* options, int enable_metrics)
+{
+    (void)options;
+    (void)enable_metrics;
+}
+
+void sentry_options_set_enable_logs(void* options, int enable_logs)
+{
+    (void)options;
+    (void)enable_logs;
+}
+
+void sentry_options_set_shutdown_timeout(void* options, uint64_t shutdown_timeout)
+{
+    (void)options;
+    (void)shutdown_timeout;
+}
+
+void sentry_options_set_enable_app_hang_tracking(void* options, int enabled)
+{
+    (void)options;
+    (void)enabled;
+}
+
+void sentry_options_set_app_hang_timeout(void* options, uint64_t timeout)
+{
+    (void)options;
+    (void)timeout;
+}
+
 void sentry_options_set_logger(void* options, void* logger, void* userdata)
 {
     (void)options;
@@ -293,6 +323,11 @@ int sentry_clear_crashed_last_run(void)
 }
 
 void sentry_reinstall_backend(void)
+{
+    /* No-op */
+}
+
+void sentry_app_hang_heartbeat(void)
 {
     /* No-op */
 }
