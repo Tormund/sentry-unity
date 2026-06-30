@@ -86,10 +86,6 @@ try {
         foreach ($sdk in @("xros", "xrsimulator")) {
             & ./scripts/build-xcframework-slice.sh $sdk "Sentry" "-Dynamic" "mh_dylib" ""
         }
-        # Exclude arm64e (same as the iOS variant above). Since Xcode 26, apps without
-        # arm64e in the main binary can't link/embed frameworks that carry an arm64e slice
-        # ("ld: building for 'visionOS'..."); Unity visionOS players are arm64-only.
-        & ./scripts/remove-architectures.sh "$PWD/XCFrameworkBuildPath/archive/Sentry-Dynamic/" "arm64e"
         $archivePattern = "$PWD/XCFrameworkBuildPath/archive/Sentry-Dynamic/SDK_NAME.xcarchive"
         & ./scripts/assemble-xcframework.sh "Sentry" "-Dynamic" "" "xros,xrsimulator" $archivePattern
         & ./scripts/validate-xcframework-format.sh "Sentry-Dynamic.xcframework"
