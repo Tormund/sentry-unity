@@ -5,7 +5,7 @@
     <!-- Cocoa -->
     <SentryCocoaRoot>$(RepoRoot)modules/sentry-cocoa/</SentryCocoaRoot>
     <SentryiOSArtifactsDestination>$(SentryArtifactsDestination)iOS/Sentry.xcframework~/</SentryiOSArtifactsDestination>
-    <SentryvisionOSArtifactsDestination>$(SentryArtifactsDestination)visionOS/Sentry.xcframework/</SentryvisionOSArtifactsDestination>
+    <SentryvisionOSArtifactsDestination>$(SentryArtifactsDestination)visionOS/Sentry.xcframework~/</SentryvisionOSArtifactsDestination>
     <SentrymacOSArtifactsDestination>$(SentryArtifactsDestination)macOS/Sentry~/</SentrymacOSArtifactsDestination>
     <SentryMacOSNativeArtifactsDestination>$(SentryArtifactsDestination)macOS/SentryNative~/</SentryMacOSNativeArtifactsDestination>
 
